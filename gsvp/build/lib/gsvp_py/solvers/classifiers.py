@@ -7,7 +7,6 @@ from sklearn.metrics import confusion_matrix,balanced_accuracy_score
 from gsvp_py.solvers.features import indices
 from gsvp_py.solvers.plots import myelbow
 from gsvp_py.solvers.getting_data import getdata
-from gsvp_py.solvers.gridsearch import grid_search
 from gsvp_py.solvers.gsvp import *
 from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE

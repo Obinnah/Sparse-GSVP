@@ -1,6 +1,5 @@
 README.md
 setup.py
-gsvp_py/Archived.py
 gsvp_py/__init__.py
 gsvp_py.egg-info/PKG-INFO
 gsvp_py.egg-info/SOURCES.txt
@@ -14,8 +13,6 @@ gsvp_py/solvers/classifiers.py
 gsvp_py/solvers/data_generator.py
 gsvp_py/solvers/features.py
 gsvp_py/solvers/getting_data.py
-gsvp_py/solvers/gridsearch.py
 gsvp_py/solvers/gsvp.py
 gsvp_py/solvers/metric.py
 gsvp_py/solvers/plots.py
-gsvp_py/solvers/visualize_weights.py

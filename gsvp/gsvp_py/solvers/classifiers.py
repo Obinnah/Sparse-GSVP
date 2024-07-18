@@ -38,17 +38,32 @@ def WNPSVMpredict(X_test,w_1,w_2,b_1,b_2):
 def OutputAcc(A, X_test, y_test, Asol,Bsol,classifier):
     w_A = Asol[0:A.shape[1]]
     w_B = Bsol[0:A.shape[1]]
-    
+
     w_Aarg = np.abs(w_A).argsort()[::-1]
     w_Barg = np.abs(w_B).argsort()[::-1]
    
-    rho = min(myelbow(w_A, w_B))
+    elba,elbb = myelbow(w_A, w_B)
+    rho = min(elba,elbb)
     indexx = int(rho) + 1
-    Carg = indices(w_Aarg[0:indexx],w_Barg[0:indexx]) # merge without repeating
-    w_Carg = {'topA':w_Aarg[0:indexx],'topB':w_Barg[0:indexx],'common':set(w_Aarg[0:indexx]).intersection(set(w_Barg[0:indexx])),'merged':Carg}
-
+    # Carg = indices(w_Aarg[0:indexx],w_Barg[0:indexx]) # merge without repeating
+    # w_Carg = {'topA':w_Aarg[0:indexx],'topB':w_Barg[0:indexx],'common':list(set(w_Aarg[0:indexx]).intersection(set(w_Barg[0:indexx]))),'merged':Carg}
+    
     if classifier == 'npsvm':
         y_pred = WNPSVMpredict(X_test,w_A,w_B,Asol[-1],Bsol[-1])
+    elif classifier == 'truncate':
+        Carg = indices(w_Aarg[0:int(elba+1)],w_Barg[0:int(elbb+1)]) # merge without repeating
+        w_Carg = {'topA':w_Aarg[0:int(elba+1)],'topB':w_Barg[0:int(elbb+1)],'common':list(set(w_Aarg[0:int(elba+1)]).intersection(set(w_Barg[0:int(elbb+1)]))),'merged':Carg}
+        A_w = np.zeros_like(w_A)
+        B_w = np.zeros_like(w_B)
+        A_w[w_Aarg[0:int(elba+1)]]=w_A[w_Aarg[0:int(elba+1)]]
+        B_w[w_Barg[0:int(elbb+1)]]=w_B[w_Barg[0:int(elbb+1)]]
+        y_pred = WNPSVMpredict(X_test,A_w,B_w,Asol[-1],Bsol[-1])
+    elif classifier == 'truncate_npsvm':
+        A_w = np.zeros_like(w_A)
+        B_w = np.zeros_like(w_B)
+        A_w[w_Aarg[0:indexx]]=w_A[w_Aarg[0:indexx]]
+        B_w[w_Barg[0:indexx]]=w_B[w_Barg[0:indexx]]
+        y_pred = WNPSVMpredict(X_test,A_w,B_w,Asol[-1],Bsol[-1])
     elif classifier == 'elb_npsvm':
         y_pred = WNPSVMpredict(X_test[:,Carg],w_A[w_Aarg][0:len(Carg)],w_B[w_Barg][0:len(Carg)],Asol[-1],Bsol[-1])
 
@@ -58,14 +73,14 @@ def OutputAcc(A, X_test, y_test, Asol,Bsol,classifier):
 
     return spec, recall, precision, balanced_accuracy_score(y_test, y_pred),conf_matrix,indexx,w_Carg
         
-def classification(data,thee,classifier,reg,lambd,seed,step_size,**kwargs):
+def classification(data,thee,classifier,reg,lambd,seed,step_size,sep,**kwargs):
     for datum in [data]:
         X_train,y_train,Xtest,y_test,pp1,pp2,pp3,pp4,pc = getdata(datum)
 
-        scaler =  StandardScaler()
-        joblib.dump(scaler, f'scaler_{datum}.pkl')
+        scaler =  StandardScaler().fit(X_train)
+        joblib.dump(scaler, f'C:/Users/uugob/SparseGSVP/Normalize/scaler_{datum}.pkl')
 
-        XX = scaler.fit_transform(X_train)
+        XX = scaler.transform(X_train)
 
         X1 = XX[0:len(y_train[y_train==0]),:]
         X2 = XX[len(y_train[y_train==0]):XX.shape[0],:]
@@ -81,19 +96,19 @@ def classification(data,thee,classifier,reg,lambd,seed,step_size,**kwargs):
         lambd1 = lambd[0]
         lambd2 = lambd[1]
 
-        q = kwargs['q']
-        epsa = kwargs['epsa']
+        if reg == 'lq1':
+            q = kwargs['q']
+            epsa = kwargs['epsa']
 
-        if reg == 'l1':
+        if reg in ['l1','l12']:
             Apgd,objvalA,Re_errA,Re_fidA,Re_regA = pgd(A,B,x00, step_size,lambd1,reg)
             Bpgd,objvalB,Re_errB,Re_fidB,Re_regB = pgd(B,A,x00, step_size,lambd2,reg) 
-        elif reg == 'lq1':
+        elif reg in ['lq1','lq12']:
             Apgd,objvalA,Re_errA,Re_fidA,Re_regA = pgd(A,B,x00, step_size,lambd1,reg,**{'q':q,'epsa':epsa})
             Bpgd,objvalB,Re_errB,Re_fidB,Re_regB = pgd(B,A,x00, step_size,lambd2,reg,**{'q':q,'epsa':epsa})
 
-
-        np.save('C:/Users/uugob/GSVP/gsvp/solutions/first_sol_{}.npy'.format(datum),Apgd)
-        np.save('C:/Users/uugob/GSVP/gsvp/solutions/2nd_sol_{}.npy'.format(datum),Bpgd)
+        np.save('C:/Users/uugob/SparseGSVP/Solutions/first_sol_{}.npy'.format(datum),Apgd)
+        np.save('C:/Users/uugob/SparseGSVP/Solutions/2nd_sol_{}.npy'.format(datum),Bpgd)
 
         Spec, Recall, precision, Bal_acc,conf_matrix,idex,idexg = OutputAcc(X_train,X_test,y_test,Apgd,Bpgd,classifier) 
 
@@ -110,7 +125,7 @@ def classification(data,thee,classifier,reg,lambd,seed,step_size,**kwargs):
 
         print(results_df)
 
-        combined_plots(X_train, X_test, y_train, y_test, dic_pgd, pc, pp1, pp2, pp3, pp4,thee,idexg['merged'])
+        combined_plots(X_train, X_test, y_train, y_test, dic_pgd, pc, pp1, pp2, pp3, pp4,thee,idexg['merged'],reg,sep,**kwargs)
     return idexg,Bal_acc,idex
 
 def OutputAcc_test(X_test, y_test, Asol,Bsol):
@@ -130,14 +145,14 @@ def test_model(datum, data, datra):
     results = []
 
     for i in range(len(datum)):
-        Asol = np.load(f'C:/Users/uugob/GSVP/gsvp/solutions/first_sol_{datum[i]}.npy') 
-        Bsol = np.load(f'C:/Users/uugob/GSVP/gsvp/solutions/2nd_sol_{datum[i]}.npy') 
+        #print(datum[i])
+        Asol = np.load(f'C:/Users/uugob/SparseGSVP/Solutions/first_sol_{datum[i]}.npy') 
+        Bsol = np.load(f'C:/Users/uugob/SparseGSVP/Solutions/2nd_sol_{datum[i]}.npy') 
         Xtest = np.load(f'C:/Users/uugob/GSVP/Testing_data/X_test_{data[i]}.npy')
         y_test = np.load(f'C:/Users/uugob/GSVP/Testing_data/y_test_{data[i]}.npy')
-        scaler = joblib.load(f'scaler_{datum[i]}.pkl')
-        Xtrain = np.load(f'C:/Users/uugob/GSVP/Training_data/X_train_{data[i]}.npy')
-        scaler.fit(Xtrain)
-
+        scaler = joblib.load(f'C:/Users/uugob/SparseGSVP/Normalize/scaler_{datum[i]}.pkl')
+        # Xtrain = np.load(f'C:/Users/uugob/GSVP/Training_data/X_train_{data[i]}.npy')
+        # scaler.fit(Xtrain)
         X_test = scaler.transform(Xtest)
 
         Spec, Recall, precision, conf_matrix,Bal_acc = OutputAcc_test(X_test, y_test, Asol,Bsol)

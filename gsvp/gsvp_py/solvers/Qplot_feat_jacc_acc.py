@@ -25,7 +25,7 @@ def Lqplots(setq,the,lambd,seed,pp,reg,classifier,headings,epsa,step_size,sep,**
             raise ValueError("Invalid regularization term. Please use 'lq1'")
     print('Jaccard Similarity Index for $q$ :=', computeavgjac(jac))
     
-    fig, axs = plt.subplots(1, 1, figsize=(18, 5))
+    fig, axs = plt.subplots(1, 1, figsize=(7, 4))
 
     # Plot Avg. Bal. Acc. Scores
     # axs[0].plot(Bal_acc, '-*r', lw=5, markersize=20, label=the)

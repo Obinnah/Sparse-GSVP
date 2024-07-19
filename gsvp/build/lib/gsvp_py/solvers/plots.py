@@ -126,7 +126,7 @@ def combined_plots(X_train, X_test, y_train, y_test, dic_pgd, pp, pp1, pp2, pp3,
 
 
     elif sep == 'pca':
-        fig, ax = plt.subplots(1, 5, figsize=(32, 6))
+        fig, ax = plt.subplots(1, 5, figsize=(30, 6))
         fig.suptitle(pp, fontsize=20)
 
         Apgd = dic_pgd['c']
